@@ -1,0 +1,69 @@
+# Deployment override — the Retinue project's own deployment ("Aros").
+#
+# This is a deliberately SMALL deployment. It exists to run one chamber
+# (retinue-chamber) and one agent (Aros), whose job is promoting the project.
+#
+# Two properties matter more here than in a personal deployment:
+#
+#   1. ONE CHAMBER ONLY. Aros must never share a session with personal chambers
+#      — health data, correspondence, contacts. GUARDRAILS.md §5 requires him to
+#      refuse and escalate if he finds himself with such access. Mounting only
+#      this chamber makes that boundary structural instead of aspirational, and
+#      is the cheap version of the "compartmentalize chambers" item in the
+#      architecture review (§3.1).
+#
+#   2. NO MESSAGING GATEWAYS. Aros works through GitHub and the dashboard. He
+#      has no reason to hold a Signal, WhatsApp or Telegram identity, so those
+#      services are parked behind a profile and never start. Least privilege by
+#      omission: a credential that isn't deployed can't be misused.
+
+services:
+  retinue:
+    volumes:
+      - ./chambers.json:/workspace/chambers.json:ro
+    environment:
+      # Aros needs a GitHub token to read issues/PRs and to open owner-action
+      # issues. Scope it narrowly: repo access to the retinue-os org, nothing
+      # else. It must NOT be able to administer the org — creating repos,
+      # changing membership and transferring repos are owner actions
+      # (GUARDRAILS.md §7).
+      - GITHUB_TOKEN
+      # He posts nothing autonomously; approval runs through the dashboard.
+      # When a social-gateway exists, its policy belongs here and should stay
+      # `verify` until the owner deliberately relaxes it.
+      - SOCIAL_SEND_POLICY=${SOCIAL_SEND_POLICY:-verify}
+    networks:
+      - agents
+      - web
+    labels:
+      - "traefik.enable=true"
+      # Replace with this deployment's public hostname.
+      - "traefik.http.routers.agents.rule=Host(`aros.example.com`)"
+      - "traefik.http.routers.agents.entrypoints=web,websecure"
+      - "traefik.http.routers.agents.middlewares=agents-clientcert,agents-auth"
+      - "traefik.http.middlewares.agents-clientcert.passtlsclientcert.pem=true"
+      - "traefik.http.middlewares.agents-clientcert.passtlsclientcert.info.subject.commonName=true"
+      - "traefik.http.middlewares.agents-auth.forwardauth.address=http://retinue:8080/auth"
+      - "traefik.http.services.agents.loadbalancer.server.port=8080"
+      - "traefik.http.routers.agents.tls.certresolver=myresolver"
+      - "traefik.http.routers.agents.tls.options=retinue-mtls@file"
+
+  # The messaging gateways are assigned a profile that is never activated, so
+  # `docker compose up -d` does not start them. To bring one up deliberately:
+  #   docker compose --profile messaging up -d signal-gateway
+  signal-gateway:
+    profiles: ["messaging"]
+  whatsapp-gateway:
+    profiles: ["messaging"]
+  telegram-gateway:
+    profiles: ["messaging"]
+
+  # STT exists to transcribe inbound voice notes and dashboard dictation. With
+  # no messaging gateways, its only client is the dashboard composer. Keep it if
+  # the owner wants to dictate approvals from a phone; park it otherwise.
+  # stt:
+  #   profiles: ["voice"]
+
+networks:
+  web:
+    external: true

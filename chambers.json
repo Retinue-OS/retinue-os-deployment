@@ -1,0 +1,8 @@
+{
+  "chambers": [
+    {
+      "name": "retinue",
+      "url": "https://github.com/retinue-os/retinue-chamber.git"
+    }
+  ]
+}
