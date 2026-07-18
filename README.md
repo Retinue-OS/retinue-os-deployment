@@ -1,7 +1,7 @@
 # retinue-deployment — the project's own deployment
 
 A working Retinue deployment that runs exactly one chamber
-([`retinue-chamber`](https://github.com/retinue-os/retinue-chamber)) and one
+([`retinue-chamber`](https://github.com/retinue-os/retinue-os-chamber)) and one
 agent, **Aros**, whose job is promoting the Retinue project honestly.
 
 It doubles as a **reference deployment**: the smallest real thing you can point
@@ -25,8 +25,8 @@ retinue-deployment/
 ## Setup
 
 ```bash
-git clone --recurse-submodules https://github.com/retinue-os/retinue-deployment.git
-cd retinue-deployment
+git clone --recurse-submodules https://github.com/retinue-os/retinue-os-deployment.git
+cd retinue-os-deployment
 cp .env.example .env        # then fill it in
 docker compose up -d
 ```

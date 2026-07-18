@@ -2,7 +2,7 @@
   "chambers": [
     {
       "name": "retinue",
-      "url": "https://github.com/retinue-os/retinue-chamber.git"
+      "url": "https://github.com/retinue-os/retinue-os-chamber.git"
     }
   ]
 }
