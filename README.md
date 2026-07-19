@@ -28,11 +28,18 @@ retinue-deployment/
 git clone --recurse-submodules https://github.com/retinue-os/retinue-os-deployment.git
 cd retinue-os-deployment
 cp .env.example .env        # then fill it in
-docker compose up -d
+./start.sh
 ```
 
-Read the framework's `README.md` for what each variable does — this deployment
-adds only `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top.
+`start.sh` wraps the compose invocation (the framework's compose file lives in
+the submodule, so plain `docker compose up` from this directory would find
+nothing) and keeps the submodule in sync with the pin. Later, `./start.sh
+update` pulls this repo, moves to the newly pinned framework commit, rebuilds
+and restarts — it is also a suitable `UPDATE_COMMAND` for the framework's
+updater sidecar.
+
+Read the framework's `README.md` (in `retinue/`) for what each variable does —
+this deployment adds only `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top.
 
 ## What makes this deployment unusual
 
