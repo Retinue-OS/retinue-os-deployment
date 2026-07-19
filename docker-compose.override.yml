@@ -40,13 +40,22 @@ services:
       # Replace with this deployment's public hostname.
       - "traefik.http.routers.agents.rule=Host(`aros.example.com`)"
       - "traefik.http.routers.agents.entrypoints=web,websecure"
-      - "traefik.http.routers.agents.middlewares=agents-clientcert,agents-auth"
-      - "traefik.http.middlewares.agents-clientcert.passtlsclientcert.pem=true"
-      - "traefik.http.middlewares.agents-clientcert.passtlsclientcert.info.subject.commonName=true"
+      - "traefik.http.routers.agents.middlewares=agents-auth"
       - "traefik.http.middlewares.agents-auth.forwardauth.address=http://retinue:8080/auth"
       - "traefik.http.services.agents.loadbalancer.server.port=8080"
       - "traefik.http.routers.agents.tls.certresolver=myresolver"
-      - "traefik.http.routers.agents.tls.options=retinue-mtls@file"
+      # Client certificates are OPTIONAL and off by default here, because the
+      # TLS option below requires a client CA file that this repo deliberately
+      # does not ship — a fork must generate its own (see
+      # retinue/scripts/gen-client-cert.sh and retinue/deploy/traefik/README.md;
+      # certificates and keys stay local files, nothing is sent anywhere).
+      # Referencing retinue-mtls@file without that CA in place breaks the
+      # router. Once your CA exists, enable mTLS-as-alternative by swapping the
+      # middlewares line above for the three below:
+      # - "traefik.http.routers.agents.middlewares=agents-clientcert,agents-auth"
+      # - "traefik.http.middlewares.agents-clientcert.passtlsclientcert.pem=true"
+      # - "traefik.http.middlewares.agents-clientcert.passtlsclientcert.info.subject.commonName=true"
+      # - "traefik.http.routers.agents.tls.options=retinue-mtls@file"
 
   # The messaging gateways are assigned a profile that is never activated, so
   # `docker compose up -d` does not start them. To bring one up deliberately:
