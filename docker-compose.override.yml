@@ -19,6 +19,15 @@
 
 services:
   retinue:
+    # The framework's base file requires a healthy litellm before retinue may
+    # start. Aros talks to Anthropic directly (ANTHROPIC_API_KEY in .env;
+    # ANTHROPIC_BASE_URL unset), so this deployment replaces that dependency
+    # list outright — !override needs Compose v2.24+. To use the LiteLLM
+    # subscription/fallback proxy instead, remove this block and start with
+    # --profile litellm.
+    depends_on: !override
+      qlever-life:
+        condition: service_started
     volumes:
       - ./chambers.json:/workspace/chambers.json:ro
     environment:
@@ -38,7 +47,7 @@ services:
     labels:
       - "traefik.enable=true"
       # Replace with this deployment's public hostname.
-      - "traefik.http.routers.agents.rule=Host(`aros.example.com`)"
+      - "traefik.http.routers.agents.rule=Host(`${PUBLIC_HOST:-aros.example.com}`)"
       - "traefik.http.routers.agents.entrypoints=web,websecure"
       - "traefik.http.routers.agents.middlewares=agents-auth"
       - "traefik.http.middlewares.agents-auth.forwardauth.address=http://retinue:8080/auth"
@@ -66,6 +75,13 @@ services:
     profiles: ["messaging"]
   telegram-gateway:
     profiles: ["messaging"]
+
+  # LiteLLM parked the same way (see the retinue depends_on override above).
+  # Its variables in .env stay blank unless this profile is activated.
+  litellm:
+    profiles: ["litellm"]
+  litellm-db:
+    profiles: ["litellm"]
 
   # STT exists to transcribe inbound voice notes and dashboard dictation. With
   # no messaging gateways, its only client is the dashboard composer. Keep it if

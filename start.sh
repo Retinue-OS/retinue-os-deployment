@@ -13,6 +13,15 @@
 set -e
 cd "$(dirname "$0")"
 
+if [ ! -f .env ]; then
+  echo "No .env here — start with: cp .env.example .env, then fill it in." >&2
+  exit 1
+fi
+# Compose resolves env_file: .env relative to the project directory, which is
+# the FIRST -f file's directory — i.e. the submodule. Link our .env there so
+# the framework's services find it (the framework .gitignores .env).
+ln -sf ../.env retinue/.env
+
 COMPOSE="docker compose -f retinue/docker-compose.yml -f docker-compose.override.yml"
 
 case "${1:-start}" in
