@@ -29,9 +29,11 @@ services:
       qlever-life:
         condition: service_started
     volumes:
-      # relative to the project directory, which is
-      # the FIRST -f file's directory — i.e. the submodule
-      - ../chambers.json:/workspace/chambers.json:ro
+      # Absolute, via $DEPLOY_DIR exported by start.sh. A relative path here
+      # would resolve against the project directory — the submodule, not this
+      # repo — because Compose takes it from the first -f file's directory.
+      # Hence also: this file is not usable with a bare `docker compose up`.
+      - ${DEPLOY_DIR:?run via ./start.sh, which exports DEPLOY_DIR}/chambers.json:/workspace/chambers.json:ro
     environment:
       # Aros needs a GitHub token to read issues/PRs and to open owner-action
       # issues. Scope it narrowly: repo access to the retinue-os org, nothing

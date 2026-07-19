@@ -38,6 +38,27 @@ client certificate described below. Later, `./start.sh update` pulls this
 repo, moves to the newly pinned framework commit, rebuilds and restarts — it
 is also a suitable `UPDATE_COMMAND` for the framework's updater sidecar.
 
+Always go through `start.sh`. It pins the compose project name (`-p`) and
+exports `$DEPLOY_DIR`, which the override interpolates; a bare
+`docker compose up` gets neither and fails on the missing variable rather than
+silently starting a second, differently-named stack.
+
+**One-time migration** if this deployment ran before the project name was
+pinned: it was previously named after the submodule directory (`retinue`), so
+the rename leaves the old volumes behind — including `retinue-root`, which
+holds the Claude subscription credentials from `./start.sh login`. Move them
+before the next start, or re-run the login afterwards:
+
+```bash
+docker compose -f retinue/docker-compose.yml -f docker-compose.override.yml down   # old project
+docker volume ls | grep '^local *retinue_'                                         # what carries over
+# for each volume worth keeping — `retinue-root` (credentials) above all,
+# then `chambers` (cloned chamber working copies):
+docker run --rm -v retinue_retinue-root:/from -v retinue-os-deployment_retinue-root:/to \
+  alpine sh -c 'cd /from && cp -a . /to'
+./start.sh
+```
+
 ## Model authentication: API key or Claude login
 
 Aros runs headless — every wake-up is a fresh `claude -p`, so there is no
@@ -95,7 +116,9 @@ desktop browsers: certificate manager → Import), then visit the dashboard —
 the browser offers the certificate, and no password prompt appears.
 
 **Required Traefik wiring** — this deployment does not run Traefik; yours must
-load the two files, e.g. mounted into its file-provider directory:
+load the two files, e.g. mounted into its file-provider directory. Replace
+`/root/retinue-os-deployment` with wherever you cloned this repo — Traefik runs
+from its own compose project, so these have to be absolute:
 
 ```yaml
 volumes:

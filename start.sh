@@ -19,10 +19,11 @@ if [ ! -f .env ]; then
   echo "No .env here — start with: cp .env.example .env, then fill it in." >&2
   exit 1
 fi
-# Compose resolves env_file: .env relative to the project directory, which is
-# the FIRST -f file's directory — i.e. the submodule. Link our .env there so
-# the framework's services find it (the framework .gitignores .env).
-ln -sf ../.env retinue/.env
+
+# Everything below this line needs the framework checked out — the cert helper
+# lives in retinue/scripts/. A plain `git clone` (no --recursive) leaves
+# retinue/ empty, so init before first use, not just before `up`.
+git submodule update --init --recursive
 
 # --- Client certificate (on by default) -----------------------------------
 # First start mints a client CA plus one owner certificate (browser-importable
@@ -39,17 +40,20 @@ if [ ! -f certs/ca.crt ] || ! ls certs/*.p12 >/dev/null 2>&1; then
 fi
 cp -f certs/ca.crt traefik/dynamic/aros-client-ca.crt
 
-COMPOSE="docker compose -f retinue/docker-compose.yml -f docker-compose.override.yml"
+# All compose invocation goes through retinue.sh — it owns the project name,
+# the env-file wiring and $DEPLOY_DIR, and explains why each is needed. Keeping
+# that flag set in one place is the point: a second copy is how the paths drift.
+COMPOSE="./retinue.sh"
 
 case "${1:-start}" in
   update)
     git pull
+    # again: git pull may have moved the submodule pin
     git submodule update --init --recursive
     $COMPOSE build
     $COMPOSE up -d
     ;;
   start)
-    git submodule update --init --recursive
     $COMPOSE up -d --build
     ;;
   login)
