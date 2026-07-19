@@ -1,0 +1,3 @@
+[submodule "retinue"]
+	path = retinue
+	url = https://github.com/retinue-os/retinue.git
