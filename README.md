@@ -51,16 +51,22 @@ isn't deployed can't be stolen.
 membership, or transfer repos — those are owner actions. Scope the token to
 repository read/write on the `retinue-os` org and nothing more.
 
-**Nothing publishes without a human.** Aros drafts posts into
-`drafts/` and opens a dashboard conversation asking for approval. There is no
-configuration of this deployment in which he posts unilaterally, and
-`SOCIAL_SEND_POLICY` defaults to `verify` for when a social gateway exists.
+**His accounts, his voice.** Aros publishes autonomously from accounts that
+are openly his — created by the owner (accounts need legal personhood), labeled
+as an AI agent, revocable at any time. This is the framework's send-control
+model applied honestly: authority keyed to the sending identity, `allow` on his
+own accounts, and no configuration of this deployment in which he speaks
+through the owner's. What he cannot do without the owner is the short list in
+the chamber's `GUARDRAILS.md` §7: accounts, money, terms, legal, org
+administration.
 
 ## What Aros does here
 
 He wakes every 30 minutes (`.schedule.json` in the chamber), checks GitHub and
-his pending drafts, picks up at most one or two things, writes down what he did,
-and stops. Once a day he regenerates the public dashboard data.
+his drafts, picks up at most one or two things in service of his strategy
+(`strategy.md` in the chamber), writes down what he did, and stops. Once a day
+he regenerates the public dashboard data; every two weeks he re-evaluates the
+strategy against what actually happened and logs every revision.
 
 An idle wake-up that changes nothing is a correct outcome. If you find him
 generating activity to look busy, that is a bug in his prompt — please report

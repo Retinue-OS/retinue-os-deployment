@@ -28,10 +28,10 @@ services:
       # changing membership and transferring repos are owner actions
       # (GUARDRAILS.md §7).
       - GITHUB_TOKEN
-      # He posts nothing autonomously; approval runs through the dashboard.
-      # When a social-gateway exists, its policy belongs here and should stay
-      # `verify` until the owner deliberately relaxes it.
-      - SOCIAL_SEND_POLICY=${SOCIAL_SEND_POLICY:-verify}
+      # Aros publishes from his own labeled accounts; `allow` on his identity
+      # is the intended state (see .env.example). He never posts as the owner —
+      # the owner's identities are simply not configured in this deployment.
+      - SOCIAL_SEND_POLICY=${SOCIAL_SEND_POLICY:-allow}
     networks:
       - agents
       - web
