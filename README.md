@@ -38,6 +38,12 @@ client certificate described below. Later, `./start.sh update` pulls this
 repo, moves to the newly pinned framework commit, rebuilds and restarts — it
 is also a suitable `UPDATE_COMMAND` for the framework's updater sidecar.
 
+`update` never moves the pin itself; it only checks out the commit this repo
+already records, so it is reproducible. To take a newer framework, run
+`./start.sh bump` — it fetches the framework's `main`, commits the new pin
+here, then rebuilds and restarts. Push that commit to roll the same version
+out to other hosts, where a plain `update` will pick it up.
+
 Always go through `start.sh`. It pins the compose project name (`-p`) and
 exports `$DEPLOY_DIR`, which the override interpolates; a bare
 `docker compose up` gets neither and fails on the missing variable rather than

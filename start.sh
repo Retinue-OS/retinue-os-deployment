@@ -3,13 +3,15 @@
 #
 #   ./start.sh          bring the stack up (build if needed)
 #   ./start.sh update   pull deployment + pinned framework, rebuild, restart
+#   ./start.sh bump     move the framework pin to upstream main, then update
 #   ./start.sh login    interactive Claude login inside the running container
 #                       (subscription auth instead of ANTHROPIC_API_KEY)
 #
-# The framework is the `retinue/` submodule, pinned to a known commit — an
-# update moves the pin deliberately (git pull in the submodule, commit the new
-# pin) rather than floating on main. This script is also a suitable
-# UPDATE_COMMAND for the framework's updater sidecar:
+# The framework is the `retinue/` submodule, pinned to a known commit — `update`
+# only ever checks out the committed pin, so it is reproducible. Moving to a
+# newer framework is the separate, deliberate `bump`, which commits the new pin
+# here. This script is also a suitable UPDATE_COMMAND for the framework's
+# updater sidecar (use `update`, not `bump` — a sidecar should not move pins):
 #
 #   UPDATE_COMMAND=/path/to/retinue-os-deployment/start.sh update
 set -e
@@ -46,6 +48,23 @@ cp -f certs/ca.crt traefik/dynamic/aros-client-ca.crt
 COMPOSE="./retinue.sh"
 
 case "${1:-start}" in
+  bump)
+    # Move the pin to the tip of the framework's main, then fall through to the
+    # same rebuild `update` does. Committing here is the point: the pin lives in
+    # this repo, so an un-committed submodule checkout would be undone by the
+    # next `update`.
+    git -C retinue fetch origin main
+    git -C retinue checkout --detach FETCH_HEAD
+    if git diff --quiet -- retinue; then
+      echo "[bump] framework already at upstream main — nothing to pin."
+    else
+      git add retinue
+      git commit -m "chore: bump framework pin to $(git -C retinue rev-parse --short HEAD)"
+      echo "[bump] pinned framework at $(git -C retinue rev-parse --short HEAD); push when ready."
+    fi
+    $COMPOSE build
+    $COMPOSE up -d
+    ;;
   update)
     git pull
     # again: git pull may have moved the submodule pin
@@ -66,7 +85,7 @@ case "${1:-start}" in
     $COMPOSE exec retinue claude
     ;;
   *)
-    echo "usage: $0 [start|update|login]" >&2
+    echo "usage: $0 [start|update|bump|login]" >&2
     exit 1
     ;;
 esac
