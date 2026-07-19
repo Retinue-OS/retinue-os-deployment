@@ -33,10 +33,64 @@ cp .env.example .env        # then fill it in
 
 `start.sh` wraps the compose invocation (the framework's compose file lives in
 the submodule, so plain `docker compose up` from this directory would find
-nothing) and keeps the submodule in sync with the pin. Later, `./start.sh
-update` pulls this repo, moves to the newly pinned framework commit, rebuilds
-and restarts — it is also a suitable `UPDATE_COMMAND` for the framework's
-updater sidecar.
+nothing), keeps the submodule in sync with the pin, and on first run mints the
+client certificate described below. Later, `./start.sh update` pulls this
+repo, moves to the newly pinned framework commit, rebuilds and restarts — it
+is also a suitable `UPDATE_COMMAND` for the framework's updater sidecar.
+
+## Client-certificate access
+
+The dashboard authenticates with a **client certificate by default**, with
+basic auth as the fallback for browsers that don't present one
+(`VerifyClientCertIfGiven` — the certificate is an alternative to the
+password, not a second factor).
+
+**What start.sh generates** (first run only, into `certs/`, all gitignored):
+
+| File | What it is |
+|---|---|
+| `ca.key` / `ca.crt` | The client CA. Whoever holds `ca.key` can mint accepted certificates — after setup, move it somewhere safe and offline. |
+| `aros-owner.p12` | The browser-importable certificate bundle. |
+| `aros-owner-passphrase.txt` | Its import passphrase. |
+
+The CA *certificate* (never the key) is copied to
+`traefik/dynamic/aros-client-ca.crt`, next to the committed TLS-options file
+`aros-mtls.yml`. Nothing is sent anywhere: every file above is created and
+stays on this host, and the private keys never enter any container — at use
+time the browser presents the certificate inside the TLS handshake, and
+Traefik forwards only the verified result to the gateway's `/auth` as
+stripped-and-rewritten headers.
+
+**Installing the certificate on your device:** transfer `aros-owner.p12` and
+the passphrase to the device over a channel you trust (AirDrop, USB, a
+password manager's file feature — not plain e-mail), install it (iOS: Settings
+→ Profile Downloaded; Android: Settings → Security → Install a certificate;
+desktop browsers: certificate manager → Import), then visit the dashboard —
+the browser offers the certificate, and no password prompt appears.
+
+**Required Traefik wiring** — this deployment does not run Traefik; yours must
+load the two files, e.g. mounted into its file-provider directory:
+
+```yaml
+volumes:
+  - /root/retinue-os-deployment/traefik/dynamic/aros-mtls.yml:/etc/traefik/dynamic/aros-mtls.yml:ro
+  - /root/retinue-os-deployment/traefik/dynamic/aros-client-ca.crt:/etc/traefik/dynamic/aros-client-ca.crt:ro
+```
+
+The TLS option is deliberately named `aros-mtls` (not the framework's
+`retinue-mtls`) so this deployment can share a Traefik with a personal Retinue
+deployment without the two option definitions colliding.
+
+**More certificates** (another device, another person):
+
+```bash
+bash retinue/scripts/gen-client-cert.sh --name <who> --out certs
+```
+
+reuses the CA and issues a fresh `.p12`. **Revocation caveat:** there is no
+CRL wired — revoking a single certificate means deleting `certs/ca.*`,
+re-running `./start.sh` to mint a fresh CA, and reissuing certificates for the
+devices that keep access.
 
 Read the framework's `README.md` (in `retinue/`) for what each variable does —
 this deployment adds only `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top.

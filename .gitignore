@@ -1,3 +1,5 @@
 .env
 __pycache__/
 *.pyc
+certs/
+traefik/dynamic/aros-client-ca.crt

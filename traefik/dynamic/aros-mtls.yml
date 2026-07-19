@@ -1,0 +1,24 @@
+# Traefik dynamic configuration — client-certificate TLS options for this
+# deployment's dashboard router. Adapted from the framework's
+# deploy/traefik/dynamic/retinue-mtls.yml with a deployment-specific option
+# name and CA filename, so it can share a Traefik with other Retinue
+# deployments (TLS option names are global across all file-provider files —
+# two files defining `retinue-mtls` would collide).
+#
+# `VerifyClientCertIfGiven` keeps the certificate OPTIONAL: a browser that
+# presents one must have it signed by our client CA, while a browser that
+# presents none is still served and falls back to basic auth at the gateway's
+# /auth endpoint.
+#
+# The router references this as `aros-mtls@file` (docker-compose.override.yml).
+# Mount BOTH files of this directory into your Traefik's file-provider
+# directory — see README.md, "Client-certificate access".
+tls:
+  options:
+    aros-mtls:
+      minVersion: VersionTLS12
+      clientAuth:
+        # Path inside the Traefik container.
+        caFiles:
+          - /etc/traefik/dynamic/aros-client-ca.crt
+        clientAuthType: VerifyClientCertIfGiven

@@ -22,6 +22,21 @@ fi
 # the framework's services find it (the framework .gitignores .env).
 ln -sf ../.env retinue/.env
 
+# --- Client certificate (on by default) -----------------------------------
+# First start mints a client CA plus one owner certificate (browser-importable
+# .p12) into certs/, then publishes the CA certificate where the Traefik
+# file-provider config expects it. The dashboard router requires certificates
+# to verify against this CA when presented; browsers without one fall back to
+# basic auth (VerifyClientCertIfGiven). See README.md for installing the .p12
+# and the two Traefik mounts this needs.
+if [ ! -f certs/ca.crt ] || ! ls certs/*.p12 >/dev/null 2>&1; then
+  echo "[mtls] issuing client CA and owner certificate into certs/ ..."
+  bash retinue/scripts/gen-client-cert.sh --name aros-owner --out certs
+  echo "[mtls] install certs/aros-owner.p12 on your device;"
+  echo "[mtls] import passphrase is in certs/aros-owner-passphrase.txt"
+fi
+cp -f certs/ca.crt traefik/dynamic/aros-client-ca.crt
+
 COMPOSE="docker compose -f retinue/docker-compose.yml -f docker-compose.override.yml"
 
 case "${1:-start}" in
