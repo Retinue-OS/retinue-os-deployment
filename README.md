@@ -38,6 +38,32 @@ client certificate described below. Later, `./start.sh update` pulls this
 repo, moves to the newly pinned framework commit, rebuilds and restarts — it
 is also a suitable `UPDATE_COMMAND` for the framework's updater sidecar.
 
+## Model authentication: API key or Claude login
+
+Aros runs headless — every wake-up is a fresh `claude -p`, so there is no
+interactive session to prompt for auth. Two ways to provide it:
+
+**Option A — API key.** Set `ANTHROPIC_API_KEY` in `.env`. Simplest, priced
+per token.
+
+**Option B — Claude subscription login.** Leave `ANTHROPIC_API_KEY` empty,
+bring the stack up, then run the one-time interactive login:
+
+```bash
+./start.sh          # stack must be up first
+./start.sh login    # opens Claude interactively inside the container
+```
+
+In the Claude prompt type `/login`, follow the browser flow (it prints a URL —
+open it on any device, paste the code back), then `/exit`. The credentials
+land in `/root/.claude/.credentials.json` inside the `retinue-root` volume, so
+they survive restarts and rebuilds, and the framework's entrypoint keeps a
+rotation-proof backup of them. All subsequent headless wake-ups use the stored
+login.
+
+If both are present, the API key wins — leave it empty deliberately when you
+want subscription auth.
+
 ## Client-certificate access
 
 The dashboard authenticates with a **client certificate by default**, with

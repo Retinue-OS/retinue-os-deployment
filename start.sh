@@ -3,6 +3,8 @@
 #
 #   ./start.sh          bring the stack up (build if needed)
 #   ./start.sh update   pull deployment + pinned framework, rebuild, restart
+#   ./start.sh login    interactive Claude login inside the running container
+#                       (subscription auth instead of ANTHROPIC_API_KEY)
 #
 # The framework is the `retinue/` submodule, pinned to a known commit — an
 # update moves the pin deliberately (git pull in the submodule, commit the new
@@ -50,8 +52,17 @@ case "${1:-start}" in
     git submodule update --init --recursive
     $COMPOSE up -d --build
     ;;
+  login)
+    # One-time interactive login for Claude subscription auth. Credentials
+    # land in /root/.claude/.credentials.json inside the retinue-root volume,
+    # so they survive restarts and rebuilds; the framework's entrypoint keeps
+    # a rotation-proof backup of them. Requires the stack to be up.
+    echo "Claude starts interactively. Type /login and follow the browser"
+    echo "flow, then /exit. Headless wake-ups use the stored login from then on."
+    $COMPOSE exec retinue claude
+    ;;
   *)
-    echo "usage: $0 [start|update]" >&2
+    echo "usage: $0 [start|update|login]" >&2
     exit 1
     ;;
 esac
