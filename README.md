@@ -19,7 +19,8 @@ retinue-deployment/
 ├── chambers.json                  ← one chamber
 ├── docker-compose.override.yml    ← edge wiring + what NOT to run
 ├── .env.example                   ← copy to .env and fill in
-└── start.sh
+├── deployment.sh                  ← manage the deployment: bootstrap, update, bump, login
+└── retinue.sh                     ← operate the running stack (docker compose wrapper)
 ```
 
 ## Setup
@@ -27,33 +28,46 @@ retinue-deployment/
 ```bash
 git clone --recurse-submodules https://github.com/retinue-os/retinue-os-deployment.git
 cd retinue-os-deployment
-cp .env.example .env        # then fill it in
-./start.sh
+cp .env.example .env          # then fill it in
+./deployment.sh bootstrap
 ```
 
-`start.sh` wraps the compose invocation (the framework's compose file lives in
-the submodule, so plain `docker compose up` from this directory would find
-nothing), keeps the submodule in sync with the pin, and on first run mints the
-client certificate described below. Later, `./start.sh update` pulls this
-repo, moves to the newly pinned framework commit, rebuilds and restarts — it
-is also a suitable `UPDATE_COMMAND` for the framework's updater sidecar.
+**Two scripts, two jobs.** `deployment.sh` changes *what is deployed* — the
+framework pin, the submodule checkout, the client certificate, the stored
+credentials. `retinue.sh` *runs it*: a `docker compose` passthrough that adds
+the flags this deployment needs, so everyday operation is
 
-`update` never moves the pin itself; it only checks out the commit this repo
-already records, so it is reproducible. To take a newer framework, run
-`./start.sh bump` — it fetches the framework's `main`, commits the new pin
-here, then rebuilds and restarts. Push that commit to roll the same version
-out to other hosts, where a plain `update` will pick it up.
+```bash
+./retinue.sh up -d            # start (bootstrap already built it)
+./retinue.sh logs -f retinue
+./retinue.sh ps
+```
 
-Always go through `start.sh`. It pins the compose project name (`-p`) and
-exports `$DEPLOY_DIR`, which the override interpolates; a bare
-`docker compose up` gets neither and fails on the missing variable rather than
-silently starting a second, differently-named stack.
+Never call `docker compose` directly: the framework's compose file lives in
+the submodule (a bare `docker compose up` from here finds nothing), and
+`retinue.sh` pins the compose project name (`-p`) and exports `$DEPLOY_DIR`,
+which the override interpolates. A bare `docker compose up` gets neither and
+fails on the missing variable rather than silently starting a second,
+differently-named stack.
+
+`./deployment.sh update` pulls this repo, moves to the newly pinned framework
+commit, rebuilds and restarts — it is also a suitable `UPDATE_COMMAND` for the
+framework's updater sidecar. `update` never moves the pin itself; it only
+checks out the commit this repo already records, so it is reproducible. To
+take a newer framework, run `./deployment.sh bump` — it fetches the
+framework's `main`, commits the new pin here, then rebuilds and restarts. Push
+that commit to roll the same version out to other hosts, where a plain
+`update` will pick it up.
+
+`start.sh` remains as a deprecated shim that forwards to the two scripts, so
+an existing `UPDATE_COMMAND=…/start.sh update` keeps working — repoint it to
+`deployment.sh update` when convenient.
 
 **One-time migration** if this deployment ran before the project name was
 pinned: it was previously named after the submodule directory (`retinue`), so
 the rename leaves the old volumes behind — including `retinue-root`, which
-holds the Claude subscription credentials from `./start.sh login`. Move them
-before the next start, or re-run the login afterwards:
+holds the Claude subscription credentials from `./deployment.sh login`. Move
+them before the next start, or re-run the login afterwards:
 
 ```bash
 docker compose -f retinue/docker-compose.yml -f docker-compose.override.yml down   # old project
@@ -62,7 +76,7 @@ docker volume ls | grep '^local *retinue_'                                      
 # then `chambers` (cloned chamber working copies):
 docker run --rm -v retinue_retinue-root:/from -v retinue-os-deployment_retinue-root:/to \
   alpine sh -c 'cd /from && cp -a . /to'
-./start.sh
+./retinue.sh up -d --build
 ```
 
 ## Model authentication: API key or Claude login
@@ -77,8 +91,8 @@ per token.
 bring the stack up, then run the one-time interactive login:
 
 ```bash
-./start.sh          # stack must be up first
-./start.sh login    # opens Claude interactively inside the container
+./retinue.sh up -d       # stack must be up first
+./deployment.sh login    # opens Claude interactively inside the container
 ```
 
 In the Claude prompt type `/login`, follow the browser flow (it prints a URL —
@@ -98,7 +112,8 @@ basic auth as the fallback for browsers that don't present one
 (`VerifyClientCertIfGiven` — the certificate is an alternative to the
 password, not a second factor).
 
-**What start.sh generates** (first run only, into `certs/`, all gitignored):
+**What `deployment.sh bootstrap` generates** (first run only, into `certs/`,
+all gitignored):
 
 | File | What it is |
 |---|---|
@@ -144,8 +159,8 @@ bash retinue/scripts/gen-client-cert.sh --name <who> --out certs
 
 reuses the CA and issues a fresh `.p12`. **Revocation caveat:** there is no
 CRL wired — revoking a single certificate means deleting `certs/ca.*`,
-re-running `./start.sh` to mint a fresh CA, and reissuing certificates for the
-devices that keep access.
+re-running `./deployment.sh bootstrap` to mint a fresh CA, and reissuing
+certificates for the devices that keep access.
 
 Read the framework's `README.md` (in `retinue/`) for what each variable does —
 this deployment adds only `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top.

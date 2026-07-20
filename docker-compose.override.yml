@@ -29,11 +29,11 @@ services:
       qlever-life:
         condition: service_started
     volumes:
-      # Absolute, via $DEPLOY_DIR exported by start.sh. A relative path here
+      # Absolute, via $DEPLOY_DIR exported by retinue.sh. A relative path here
       # would resolve against the project directory — the submodule, not this
       # repo — because Compose takes it from the first -f file's directory.
       # Hence also: this file is not usable with a bare `docker compose up`.
-      - ${DEPLOY_DIR:?run via ./start.sh, which exports DEPLOY_DIR}/chambers.json:/workspace/chambers.json:ro
+      - ${DEPLOY_DIR:?run via ./retinue.sh, which exports DEPLOY_DIR}/chambers.json:/workspace/chambers.json:ro
     environment:
       # Aros needs a GitHub token to read issues/PRs and to open owner-action
       # issues. Scope it narrowly: repo access to the retinue-os org, nothing
@@ -53,8 +53,8 @@ services:
       # Replace with this deployment's public hostname.
       - "traefik.http.routers.agents.rule=Host(`${PUBLIC_HOST:-aros.example.com}`)"
       - "traefik.http.routers.agents.entrypoints=web,websecure"
-      # Client-certificate auth, ON by default. start.sh mints the CA and an
-      # owner .p12 into certs/ on first run and publishes the CA cert to
+      # Client-certificate auth, ON by default. deployment.sh mints the CA and
+      # an owner .p12 into certs/ on bootstrap and publishes the CA cert to
       # traefik/dynamic/ — no repo ever ships a CA (each deployment's is its
       # own; a shipped one would let its holder mint accepted certificates).
       # The TLS option is deployment-named (aros-mtls, not the framework's
