@@ -163,7 +163,9 @@ re-running `./deployment.sh bootstrap` to mint a fresh CA, and reissuing
 certificates for the devices that keep access.
 
 Read the framework's `README.md` (in `retinue/`) for what each variable does —
-this deployment adds only `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top.
+this deployment adds `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top, plus
+`GATEWAY_MONITOR_IGNORE`/`MESSENGER_BUILTIN_CHANNELS` (see "No messaging
+gateways" below).
 
 ## What makes this deployment unusual
 
@@ -175,7 +177,13 @@ you run Aros, do not add chambers to this file.
 **No messaging gateways.** Aros works through GitHub and the dashboard. The
 Signal, WhatsApp and Telegram services are parked behind an inactive Compose
 profile, so no messaging credentials are ever provisioned. A credential that
-isn't deployed can't be stolen.
+isn't deployed can't be stolen. The framework still wires each channel's
+`*_GATEWAY_BASE_URL` unconditionally though, so `gateway-monitor.py` cannot
+tell "never started" apart from "crashed" on its own; `GATEWAY_MONITOR_IGNORE`
+in the override silences its alerts for all three with the framework version
+currently pinned, and `MESSENGER_BUILTIN_CHANNELS` (once
+retinue-os/retinue#83 is merged and the submodule pin here moves past it) is
+the durable fix — it drops them from the shared gateway registry outright.
 
 **A deliberately weak GitHub token.** Aros reads issues and PRs and opens
 `owner-action` issues. He must not be able to create repositories, change org
