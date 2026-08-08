@@ -163,7 +163,8 @@ re-running `./deployment.sh bootstrap` to mint a fresh CA, and reissuing
 certificates for the devices that keep access.
 
 Read the framework's `README.md` (in `retinue/`) for what each variable does —
-this deployment adds only `GITHUB_TOKEN` and `SOCIAL_SEND_POLICY` on top.
+this deployment adds `PUBLIC_HOST`, `ACME_EMAIL`, `GITHUB_TOKEN` and
+`SOCIAL_SEND_POLICY` on top; each is documented inline in `.env.example`.
 
 ## What makes this deployment unusual
 
@@ -179,8 +180,10 @@ isn't deployed can't be stolen.
 
 **A deliberately weak GitHub token.** Aros reads issues and PRs and opens
 `owner-action` issues. He must not be able to create repositories, change org
-membership, or transfer repos — those are owner actions. Scope the token to
-repository read/write on the `retinue-os` org and nothing more.
+membership, or transfer repos — those are owner actions. Scope the token
+narrowly — the exact permission set, and the reasoning for what is deliberately
+withheld, is in `.env.example`. In particular it does **not** grant Workflows
+write.
 
 **His accounts, his voice.** Aros publishes autonomously from accounts that
 are openly his — created by the owner (accounts need legal personhood), labeled
