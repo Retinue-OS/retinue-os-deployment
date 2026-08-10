@@ -16,6 +16,18 @@
 #      has no reason to hold a Signal, WhatsApp or Telegram identity, so those
 #      services are parked behind a profile and never start. Least privilege by
 #      omission: a credential that isn't deployed can't be misused.
+#
+#      The framework's base docker-compose.yml still unconditionally wires
+#      SIGNAL_/WHATSAPP_/TELEGRAM_GATEWAY_BASE_URL for the retinue service
+#      regardless of the profile, so gateway-monitor.py cannot tell "never
+#      started" apart from "crashed" and opens a repeating "disconnected"
+#      dashboard thread for each. GATEWAY_MONITOR_IGNORE below silences that
+#      now, with the framework version this deployment currently runs.
+#      MESSENGER_BUILTIN_CHANNELS (retinue-os/retinue#83, not yet merged) is
+#      the durable fix — it drops all three from the shared gateway registry
+#      (/sends, /gateways, the monitor) outright, not just the monitor's
+#      alerts. Once #83 lands and the retinue submodule pin here is bumped
+#      past it, GATEWAY_MONITOR_IGNORE becomes redundant and can be dropped.
 
 services:
   retinue:
@@ -45,6 +57,14 @@ services:
       # is the intended state (see .env.example). He never posts as the owner —
       # the owner's identities are simply not configured in this deployment.
       - SOCIAL_SEND_POLICY=${SOCIAL_SEND_POLICY:-allow}
+      # No messaging gateways run here (see point 2 above) — silence the
+      # monitor's repeating "disconnected" reminders for all three built-ins
+      # immediately, with the framework version currently pinned.
+      - GATEWAY_MONITOR_IGNORE=signal-gateway,whatsapp-gateway,telegram-gateway
+      # The durable fix once retinue-os/retinue#83 is merged and this
+      # deployment's submodule pin moves past it: drop all three built-ins
+      # from the gateway registry entirely, not just the monitor's alerts.
+      - MESSENGER_BUILTIN_CHANNELS=
     networks:
       - agents
       - web
