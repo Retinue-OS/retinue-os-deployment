@@ -58,9 +58,17 @@ provision_certs() {
   cp -f certs/ca.crt traefik/dynamic/aros-client-ca.crt
 }
 
+prepare_claude_usage_volume() {
+  # Docker requires a volume subpath to exist before it can mount it.
+  docker volume create retinue_retinue-root >/dev/null
+  docker run --rm -v retinue_retinue-root:/volume alpine:3.20 \
+    mkdir -p /volume/.claude/projects
+}
+
 case "$1" in
   bootstrap)
     provision_certs
+    prepare_claude_usage_volume
     $COMPOSE up -d --build
     ;;
   update)
@@ -69,6 +77,7 @@ case "$1" in
     git submodule update --init --recursive
     provision_certs
     $COMPOSE build
+    prepare_claude_usage_volume
     $COMPOSE up -d
     ;;
   bump)
@@ -86,6 +95,7 @@ case "$1" in
     fi
     provision_certs
     $COMPOSE build
+    prepare_claude_usage_volume
     $COMPOSE up -d
     ;;
   login)
