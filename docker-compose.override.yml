@@ -70,6 +70,10 @@ services:
       - web
     labels:
       - "traefik.enable=true"
+      # The container sits on two networks but Traefik only on `web`. Without
+      # this, Traefik may pick the `agents` IP — unreachable, 504 after every
+      # container recreate that happens to reorder the networks.
+      - "traefik.docker.network=web"
       - "traefik.http.routers.agents.rule=Host(`${PUBLIC_HOST:?set PUBLIC_HOST in .env}`)"
       - "traefik.http.routers.agents.entrypoints=web,websecure"
       # Client-certificate auth, ON by default. deployment.sh mints the CA and
