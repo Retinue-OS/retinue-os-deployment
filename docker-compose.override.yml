@@ -53,6 +53,7 @@ services:
       # changing membership and transferring repos are owner actions
       # (GUARDRAILS.md §7).
       - GITHUB_TOKEN
+      - RETINUE_SESSION_ENV_EXTRA=GITHUB_TOKEN
       # Aros publishes from his own labeled accounts; `allow` on his identity
       # is the intended state (see .env.example). He never posts as the owner —
       # the owner's identities are simply not configured in this deployment.
