@@ -53,11 +53,13 @@ services:
       # changing membership and transferring repos are owner actions
       # (GUARDRAILS.md §7).
       - GITHUB_TOKEN
-      - RETINUE_SESSION_ENV_EXTRA=GITHUB_TOKEN
+      - RETINUE_SESSION_ENV_EXTRA=GITHUB_TOKEN,BSKY_*
       # Aros publishes from his own labeled accounts; `allow` on his identity
       # is the intended state (see .env.example). He never posts as the owner —
       # the owner's identities are simply not configured in this deployment.
       - SOCIAL_SEND_POLICY=${SOCIAL_SEND_POLICY:-allow}
+      - BSKY_EMAIL
+      - BSKY_PASSWORD
       # No messaging gateways run here (see point 2 above) — silence the
       # monitor's repeating "disconnected" reminders for all three built-ins
       # immediately, with the framework version currently pinned.
